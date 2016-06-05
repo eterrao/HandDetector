@@ -1,6 +1,5 @@
 package com.mmj.handdetectorcalling.ui.activity;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.hardware.Sensor;
@@ -8,7 +7,6 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.net.Uri;
-import android.os.Bundle;
 import android.os.Vibrator;
 import android.text.TextUtils;
 import android.util.Log;
@@ -31,7 +29,7 @@ import com.mmj.handdetectorcalling.utils.AppConstant;
  * 5.可设置熄屏状态下
  */
 
-public class MainActivity extends Activity implements View.OnClickListener, SensorEventListener {
+public class MainActivity extends BaseActivity implements View.OnClickListener, SensorEventListener {
 
     private TextView phoneNumTV;
     private EditText phoneNumET;
@@ -41,11 +39,18 @@ public class MainActivity extends Activity implements View.OnClickListener, Sens
     private Vibrator mVibrator = null;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+    protected void initViews() {
         setContentView(R.layout.activity_main);
-        initView();
-        setListener();
+        initWidget();
+    }
+
+    @Override
+    protected void setListeners() {
+        okBtn.setOnClickListener(this);
+    }
+
+    @Override
+    protected void initData() {
         String phoneNumTemp = getData();
         if (!TextUtils.isEmpty(phoneNumTemp)) {
             phoneNumTV.setText(phoneNumTemp);
@@ -54,15 +59,12 @@ public class MainActivity extends Activity implements View.OnClickListener, Sens
         startDaemonService();
     }
 
-    private void initView() {
+    private void initWidget() {
         phoneNumTV = (TextView) findViewById(R.id.tv_phone_number);
         phoneNumET = (EditText) findViewById(R.id.et_phone_number_input);
         okBtn = (Button) findViewById(R.id.btn_ok);
     }
 
-    private void setListener() {
-        okBtn.setOnClickListener(this);
-    }
 
     /**
      * 从偏好设置取数据
@@ -93,7 +95,6 @@ public class MainActivity extends Activity implements View.OnClickListener, Sens
                 break;
         }
     }
-
 
     /**
      * 保存电话号到偏好设置（数据持久化）
