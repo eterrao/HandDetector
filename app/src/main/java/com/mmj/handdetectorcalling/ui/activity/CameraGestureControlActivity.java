@@ -138,6 +138,12 @@ public class CameraGestureControlActivity extends BaseActivity implements View.O
             }
         });
         minTresholdSeekbar.setProgress(8700);
+        capturePreviewIV.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                SystUtils.intoActivity(CameraGestureControlActivity.this, PhotoPreviewActivity.class);
+            }
+        });
     }
 
     @Override

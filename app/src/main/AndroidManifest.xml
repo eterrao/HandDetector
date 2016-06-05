@@ -52,8 +52,12 @@
 
         <activity
             android:name=".ui.activity.CameraGestureControlActivity"
-            android:screenOrientation="landscape"
-            android:launchMode="singleTask" />
+            android:launchMode="singleTask"
+            android:screenOrientation="landscape" />
+        <activity
+            android:name=".ui.activity.PhotoPreviewActivity"
+            android:launchMode="singleTask"
+            android:screenOrientation="landscape" />
 
         <activity
             android:name=".ui.activity.MainActivity"

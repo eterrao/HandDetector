@@ -21,14 +21,14 @@ public class CustomFileUtils {
         return file.getPath();
     }
 
-    private static String getCacheDir() {
+    public static String getCacheDir() {
         return Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())
                 || !isExternalStorageRemovable()
                 ? CustomApplication.getContext().getExternalCacheDir().getPath() :
                 CustomApplication.getContext().getCacheDir().getPath();
     }
 
-    private static String getImageFileName() {
+    public static String getImageFileName() {
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         return "JPEG_" + timeStamp + ".jpg";
     }

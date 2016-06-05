@@ -129,14 +129,14 @@ public class CustomCameraUtils {
 
     public static String saveBitmap2FileUseQuality(Bitmap bitmap, int quality) {
         Bitmap.CompressFormat format = Bitmap.CompressFormat.JPEG;
-        File imageFileDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), "MyTestImages");
+        File imageFileDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "MyTestImage");
         if (!imageFileDir.exists()) {
             if (!imageFileDir.mkdirs()) {
                 SystUtils.o("can't makedir for imagefile");
                 return null;
             }
         }
-        String path = imageFileDir.getPath();
+        String path = imageFileDir.getPath() + CustomFileUtils.getImageFileName();
         OutputStream stream = null;
         try {
             if (quality <= 0 || quality > 100) quality = 100;
