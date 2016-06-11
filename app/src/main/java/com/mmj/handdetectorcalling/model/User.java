@@ -3,21 +3,21 @@ package com.mmj.handdetectorcalling.model;
 import java.io.Serializable;
 
 /**
- * ÓÃ»§ÊµÌåÀà
+ * ç”¨æˆ·å®ä½“ç±»
  */
 public class User implements Serializable {
 
     private static final long serialVersionUID = -5062775818842005386L;
 
-    private String userName;    // ÓÃ»§Ãû
-    private String ip;            //ipµØÖ·
-    private String mac;            //MACµØÖ·
-    private String deviceCode;//ÊÖ»úÉè±¸Âë
-    private String heartTime;//¼ÇÂ¼ĞÄÌø°üµÄ×îºóÒ»´ÎÊ±¼ä
-    private boolean refreshIcon;//¼ÇÂ¼ÊÇ·ñË¢ĞÂÍ·Ïñ£¨µÇÂ¼µÚÒ»´Î»áË¢ĞÂÍ·Ïñ£©
+    private String userName;    // ç”¨æˆ·å
+    private String ip;            //ipåœ°å€
+    private String mac;            //MACåœ°å€
+    private String deviceCode;//æ‰‹æœºè®¾å¤‡ç 
+    private String heartTime;//è®°å½•å¿ƒè·³åŒ…çš„æœ€åä¸€æ¬¡æ—¶é—´
+    private boolean refreshIcon;//è®°å½•æ˜¯å¦åˆ·æ–°å¤´åƒï¼ˆç™»å½•ç¬¬ä¸€æ¬¡ä¼šåˆ·æ–°å¤´åƒï¼‰
 
-    public static final int INTERVAL = 10 * 1000;//ĞÄÌø°ü¼ä¸ôÊ±¼ä
-    public static final int TIMEOUT = (int) (2.1 * INTERVAL);//³¬Ê±Ê±¼ä
+    public static final int INTERVAL = 10 * 1000;//å¿ƒè·³åŒ…é—´éš”æ—¶é—´
+    public static final int TIMEOUT = (int) (2.1 * INTERVAL);//è¶…æ—¶æ—¶é—´
 
     public User() {
         heartTime = System.currentTimeMillis() + "";
@@ -72,7 +72,7 @@ public class User implements Serializable {
     }
 
     /**
-     * ÓÃÀ´ÑéÖ¤¶Ô·½ÊÇ·ñÔÚÏß
+     * ç”¨æ¥éªŒè¯å¯¹æ–¹æ˜¯å¦åœ¨çº¿
      *
      * @return
      */
