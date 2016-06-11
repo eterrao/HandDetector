@@ -8,4 +8,21 @@
     <color name="white">#ffffff</color>
     <color name="blue">#3F51B5</color>
     <color name="gray">#d1d1d1</color>
+
+    <color name="material_light_red">#F44336</color>
+    <color name="material_light_yellow">#FFEB3B</color>
+    <color name="material_light_blue">#71C3DE</color>
+    <color name="material_light_green">#4CAF50</color>
+    <color name="material_light_green_light">#64b367</color>
+    <color name="material_light_pink">#FF4081</color>
+    <color name="material_light_purple">#9C27B0</color>
+    <color name="material_light_black">#212121</color>
+    <color name="material_light_white">#ffffff</color>
+    <color name="material_light_grey">#aaaaaa</color>
+    <color name="material_light_transparent_black">#80000000</color>
+    <color name="material_light_transparent_black2">#99000000</color>
+    <color name="material_light_transparent_black80">#20000000</color>
+
+    <color name="dialog_divider_color">#FFEFDADA</color>
+    <color name="dialog_text_color">#FF757575</color>
 </resources>

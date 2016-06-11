@@ -13,6 +13,7 @@ public class SplashActivity extends BaseActivity implements View.OnClickListener
 
     private Button cameraBtn;
     private Button callingBtn;
+    private Button videoBtn;
 
 
     @Override
@@ -24,12 +25,14 @@ public class SplashActivity extends BaseActivity implements View.OnClickListener
     private void initWidget() {
         cameraBtn = (Button) findViewById(R.id.btn_gesture_camera);
         callingBtn = (Button) findViewById(R.id.btn_gesture_calling);
+        videoBtn = (Button) findViewById(R.id.btn_video);
     }
 
     @Override
     protected void setListeners() {
         cameraBtn.setOnClickListener(this);
         callingBtn.setOnClickListener(this);
+        videoBtn.setOnClickListener(this);
     }
 
     @Override
@@ -46,6 +49,9 @@ public class SplashActivity extends BaseActivity implements View.OnClickListener
                 break;
             case R.id.btn_gesture_calling:
                 SystUtils.intoActivity(SplashActivity.this, MainActivity.class);
+                break;
+            case R.id.btn_video:
+                SystUtils.intoActivity(SplashActivity.this, VideoChatActivity.class);
                 break;
 
             default:

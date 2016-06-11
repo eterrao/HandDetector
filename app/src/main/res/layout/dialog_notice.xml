@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="250dp"
+    android:layout_height="wrap_content"
+    android:background="@drawable/dialog_corners"
+    android:orientation="vertical">
+
+    <ScrollView
+        android:id="@+id/sv_notice_title"
+        android:layout_width="match_parent"
+        android:layout_height="49dp"
+        android:scrollbars="none">
+
+        <RelativeLayout
+            android:id="@+id/rl_notice_title"
+            android:layout_width="match_parent"
+            android:layout_height="49dp">
+
+            <TextView
+                android:id="@+id/tv_push_notice_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:layout_marginLeft="5dp"
+                android:layout_marginRight="5dp"
+                android:gravity="center"
+                android:text="视频邀请"
+                android:textColor="@color/material_light_black"
+                android:textSize="16sp"
+                android:visibility="visible" />
+        </RelativeLayout>
+    </ScrollView>
+
+    <ImageView
+        android:id="@+id/iv_notive_divider"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_below="@+id/sv_notice_title"
+        android:background="@color/dialog_divider_color">
+
+    </ImageView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_below="@+id/iv_notive_divider"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:weightSum="2">
+
+        <TextView
+            android:id="@+id/btn_ignore_push_notice"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/dialog_corners"
+            android:gravity="center"
+            android:text="拒绝"
+            android:textColor="@color/material_light_black"
+            android:textSize="16sp" />
+
+        <ImageView
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:background="@color/dialog_divider_color" />
+
+        <TextView
+            android:id="@+id/btn_into_push_notice"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/dialog_corners"
+            android:gravity="center"
+            android:text="接受"
+            android:textColor="@color/material_light_black"
+            android:textSize="16sp" />
+    </LinearLayout>
+
+
+</RelativeLayout>

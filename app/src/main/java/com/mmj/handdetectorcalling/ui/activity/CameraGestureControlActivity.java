@@ -412,8 +412,10 @@ public class CameraGestureControlActivity extends BaseActivity implements View.O
 
     public void updateNumberOfFingers() {
         numberOfFingersText.setText(String.valueOf(this.numberOfFingers));
+//        SystUtils.o("numberOfFingers=> " + numberOfFingers);
         if (numberOfFingers == DETECT_TYPE) {
-            if (SystUtils.cameraCanCaptured) takePhoto();
+//            if (SystUtils.cameraCanCaptured) takePhoto();
+
         }
     }
 

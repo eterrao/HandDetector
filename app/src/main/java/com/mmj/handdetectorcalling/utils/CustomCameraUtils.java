@@ -2,6 +2,7 @@ package com.mmj.handdetectorcalling.utils;
 
 import android.app.Activity;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.hardware.Camera;
 import android.os.Environment;
 import android.view.Surface;
@@ -160,5 +161,19 @@ public class CustomCameraUtils {
             }
         }
         return path;
+    }
+
+    /**
+     * 得到压缩图片
+     * @param data
+     * @param reqWidth
+     * @param reqHeight
+     * @return
+     */
+    public static Bitmap decodeVideoBitmap(byte[] data,int reqHeight) {
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inSampleSize = 10 ;
+        options.inJustDecodeBounds = false;
+        return BitmapFactory.decodeByteArray(data, 0, data.length, options);
     }
 }

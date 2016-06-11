@@ -10,6 +10,11 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <!-- 震动 -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO"></uses-permission>
+    <uses-permission android:name="android.permission.READ_PHONE_STATE"></uses-permission>
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"></uses-permission>
+
 
     <supports-screens
         android:anyDensity="true"
@@ -61,8 +66,17 @@
 
         <activity
             android:name=".ui.activity.MainActivity"
+            android:screenOrientation="portrait"
+            android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar" />
+        <activity
+            android:name=".ui.activity.VideoChatActivity"
+            android:launchMode="singleTask"
+            android:screenOrientation="portrait"
             android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar" />
 
         <service android:name=".service.DaemonService"></service>
+        <service android:name=".service.ChatService"></service>
+
+        <receiver android:name=".service.HeartBeatBroaadcastReceiver"></receiver>
     </application>
 </manifest>
