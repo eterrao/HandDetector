@@ -5,10 +5,9 @@ import android.content.Context;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.telephony.TelephonyManager;
-import android.util.Log;
 import android.widget.Toast;
 
-import com.mmj.handdetectorcalling.model.UDPMessage;
+import com.mmj.handdetectorcalling.model.UDPMessageBean;
 import com.mmj.handdetectorcalling.utils.SystUtils;
 
 import org.apache.http.conn.util.InetAddressUtils;
@@ -95,8 +94,8 @@ public class CustomApplication extends Application {
         }
     }
 
-    public UDPMessage getMyUdpMessage(String msg, int type) {
-        UDPMessage message = new UDPMessage();
+    public UDPMessageBean getMyUdpMessage(String msg, int type) {
+        UDPMessageBean message = new UDPMessageBean();
         message.setType(type);
         message.setMsg(msg);
         message.setOwn(true);

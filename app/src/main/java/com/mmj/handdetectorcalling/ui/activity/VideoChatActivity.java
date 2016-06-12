@@ -22,6 +22,7 @@ import android.view.KeyEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.PopupWindow;
 import android.widget.TextView;
@@ -29,12 +30,12 @@ import android.widget.Toast;
 
 import com.mmj.handdetectorcalling.R;
 import com.mmj.handdetectorcalling.application.CustomApplication;
-import com.mmj.handdetectorcalling.listeners.Listener;
-import com.mmj.handdetectorcalling.listeners.TCPVideoReceiveListener;
-import com.mmj.handdetectorcalling.listeners.UDPVoiceListener;
+import com.mmj.handdetectorcalling.listeners.IListener;
+import com.mmj.handdetectorcalling.listeners.TCPVideoReceiveIListener;
+import com.mmj.handdetectorcalling.listeners.UDPVoiceIListener;
 import com.mmj.handdetectorcalling.listeners.interfaces.OnBitmapLoaded;
-import com.mmj.handdetectorcalling.model.UDPMessage;
-import com.mmj.handdetectorcalling.model.User;
+import com.mmj.handdetectorcalling.model.UDPMessageBean;
+import com.mmj.handdetectorcalling.model.UserBean;
 import com.mmj.handdetectorcalling.service.ChatService;
 import com.mmj.handdetectorcalling.service.HeartBeatBroaadcastReceiver;
 import com.mmj.handdetectorcalling.ui.view.CustomVideoView;
@@ -63,7 +64,7 @@ import java.util.concurrent.Executors;
 /**
  * Created by raomengyang on 6/11/16.
  */
-public class VideoChatActivity extends BaseActivity implements SurfaceHolder.Callback, Camera.PreviewCallback, OnBitmapLoaded {
+public class VideoChatActivity extends BaseActivity implements View.OnClickListener, SurfaceHolder.Callback, Camera.PreviewCallback, OnBitmapLoaded {
 
     private SurfaceView mSurfaceView;
     private CustomVideoView mCustomVideoView;
@@ -74,41 +75,41 @@ public class VideoChatActivity extends BaseActivity implements SurfaceHolder.Cal
     private SurfaceHolder mSurfaceHolder;
     private Camera mCamera;
 
-    private MyServiceConnection connection;
-    private User chatter;//对方聊天人
+    private CustomServiceConnection connection;
+    private UserBean chatter;//对方聊天人
     private ChatService.MyBinder binder;
 
     private final int SHOW_DIALOG = 0XF1001;
     private final int REFRESH = 0XF1002;
 
 
-    private String chatterIP;//记录当前用户ip
+    private String ipAddress;//记录当前用户ip
 
-    private List<UDPMessage> myMessages = new ArrayList<UDPMessage>();//保存聊天信息
-    private List<User> users = new ArrayList<User>();
+    private List<UDPMessageBean> myMessages = new ArrayList<UDPMessageBean>();//保存聊天信息
+    private List<UserBean> userBeen = new ArrayList<UserBean>();
 
-    private AlarmManager alarmManager;//用来发送心跳包
+    private AlarmManager heartBeatManager; // 用来发送心跳包
     private PendingIntent pendingIntent;
-    private String chatterDeviceCode;//记录当前用户设备id
-    private boolean started;//用来标识控件是否渲染完毕
-    private boolean stop;//标识activity被遮挡
+    private boolean viewRenderFinished; // 用来标识控件是否渲染完毕
+    private boolean activityNotFocused; // 标识activity被遮挡
     private boolean binded;
 
-    private int w;  //宽度
-    private int h;
+    private int width;  //宽度
+    private int height;
     private int previewFormat;
+    private boolean shouldFullScreen = false;
 
-    private TCPVideoReceiveListener videoReceiveListener;
-    private UDPVoiceListener voiceListener;
+    private TCPVideoReceiveIListener videoReceiveListener;
+    private UDPVoiceIListener voiceListener;
     private boolean voiceListenerOpened = false;
 
-    private MessageUpdateBroadcastReceiver messageUpdateBroadcastReceiver = new MessageUpdateBroadcastReceiver();
+    private MessageUpdateReceiver messageUpdateReceiver = new MessageUpdateReceiver();
 
     private UserBroadcastReceiver userBroadcastReceiver = new UserBroadcastReceiver();
 
 
     //线程池，用来发送图片数据
-    private ExecutorService executors = Executors.newFixedThreadPool(TCPVideoReceiveListener.THREAD_COUNT);
+    private ExecutorService executors = Executors.newFixedThreadPool(TCPVideoReceiveIListener.THREAD_COUNT);
     private int port = AppConstant.VIDEO_PORT;
 
     private Handler handler = new Handler() {
@@ -146,14 +147,36 @@ public class VideoChatActivity extends BaseActivity implements SurfaceHolder.Cal
         connectBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-//                if (binded) {
-//                    unbindService(connection);
-//                    binded = false;
-//                }
-                sendMsg(CustomApplication.getCustomApplication().getMyUdpMessage("", Listener.ASK_VIDEO));
+                sendMsg(CustomApplication.getCustomApplication().getMyUdpMessage("", IListener.ASK_VIDEO));
                 SystUtils.showToast("已发送请求，对方同意后自动进行视屏聊天");
             }
         });
+        mSurfaceView.setOnClickListener(this);
+        mCustomVideoView.setOnClickListener(this);
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.sv_video_me:
+                break;
+
+            case R.id.cvv_video_u:
+                if (!shouldFullScreen) {
+                    shouldFullScreen = true;
+                    ViewGroup.LayoutParams layoutParams = mCustomVideoView.getLayoutParams();
+                    layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT;
+                    layoutParams.width = ViewGroup.LayoutParams.MATCH_PARENT;
+                    mCustomVideoView.setLayoutParams(layoutParams);
+                } else {
+                    shouldFullScreen = false;
+                    ViewGroup.LayoutParams layoutParams = mCustomVideoView.getLayoutParams();
+                    layoutParams.height = ScreenUtils.px2dp(ScreenUtils.getScreenHeight(this) / 4, this);
+                    layoutParams.width = ScreenUtils.px2dp(ScreenUtils.getScreenWidth(this) / 4, this);
+                    mCustomVideoView.setLayoutParams(layoutParams);
+                }
+                break;
+        }
     }
 
     @Override
@@ -164,14 +187,12 @@ public class VideoChatActivity extends BaseActivity implements SurfaceHolder.Cal
         if (ip == null) {
             SystUtils.showToast("请检测wifi");
             return;
-        } else chatterIP = ip;
-
-
+        } else ipAddress = ip;
         new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
-                    videoReceiveListener = TCPVideoReceiveListener.getInstance();
+                    videoReceiveListener = TCPVideoReceiveIListener.getInstance();
                     videoReceiveListener.setBitmapLoaded(VideoChatActivity.this);
                     if (!videoReceiveListener.isRunning())
                         videoReceiveListener.open();//先监听端口，然后连接
@@ -193,22 +214,24 @@ public class VideoChatActivity extends BaseActivity implements SurfaceHolder.Cal
     private void init() {
         //绑定到service
         Intent intent = new Intent(VideoChatActivity.this, ChatService.class);
-        bindService(intent, connection = new MyServiceConnection(), Context.BIND_AUTO_CREATE);
+        bindService(intent, connection = new CustomServiceConnection(), Context.BIND_AUTO_CREATE);
         //注册更新广播
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(MessageUpdateBroadcastReceiver.ACTION_NOTIFY_DATA);
-        filter.addAction(MessageUpdateBroadcastReceiver.ACTION_HEARTBEAT);
-        registerReceiver(messageUpdateBroadcastReceiver, filter);
-        IntentFilter filter2 = new IntentFilter(AppConstant.ACTION_ADD_USER);
-        registerReceiver(userBroadcastReceiver, filter2);
+        IntentFilter broadcastFilter = new IntentFilter();
+        broadcastFilter.addAction(MessageUpdateReceiver.ACTION_NOTIFY_DATA);
+        broadcastFilter.addAction(MessageUpdateReceiver.ACTION_HEARTBEAT);
+        IntentFilter addUserFilter = new IntentFilter(AppConstant.ACTION_ADD_USER);
+        registerReceiver(messageUpdateReceiver, broadcastFilter); // 注册对应的两个广播接收者
+        registerReceiver(userBroadcastReceiver, addUserFilter);
 
-        //开启心跳包
-        alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+        heartBeatManager = (AlarmManager) getSystemService(ALARM_SERVICE); //开启心跳包
         pendingIntent = PendingIntent.getBroadcast(this, 0, new Intent(this, HeartBeatBroaadcastReceiver.class), 0);
-        alarmManager.setRepeating(AlarmManager.RTC, System.currentTimeMillis(), User.INTERVAL, pendingIntent);
+        heartBeatManager.setRepeating(AlarmManager.RTC, System.currentTimeMillis(), UserBean.INTERVAL, pendingIntent);
     }
 
 
+    /**
+     * 实现SurfaceHolder的三个抽象方法
+     */
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
         int cameras = Camera.getNumberOfCameras();
@@ -235,22 +258,11 @@ public class VideoChatActivity extends BaseActivity implements SurfaceHolder.Cal
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
         Camera.Parameters parameters = mCamera.getParameters();//得到相机设置参数
         Camera.Size size = mCamera.getParameters().getPreviewSize(); //获取预览大小
-        w = size.width;
-        h = size.height;
+        this.width = size.width;
+        this.height = size.height;
         parameters.setPictureFormat(PixelFormat.JPEG);//设置图片格式
         previewFormat = parameters.getPreviewFormat();
         setDisplayOrientation(mCamera, 90);
-//		 if (Integer.parseInt(Build.VERSION.SDK) >= 8) {
-//		      setDisplayOrientation(camera, 90);
-//		    } else {
-//		      if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
-//		        parameters.set("orientation", "portrait");
-//		        parameters.set("rotation", 90);
-//		      }else if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
-//		        parameters.set("orientation", "landscape");
-//		        parameters.set("rotation", 90);
-//		      }
-//		    }
         mCamera.setPreviewCallback(this);
         mCamera.setParameters(parameters);
         mCamera.startPreview();//开始预览
@@ -279,21 +291,18 @@ public class VideoChatActivity extends BaseActivity implements SurfaceHolder.Cal
             @Override
             public void run() {
                 try {
-                    Socket socket = new Socket(InetAddress.getByName(chatterIP), port);
+                    Socket socket = new Socket(InetAddress.getByName(ipAddress), port);
                     OutputStream out = socket.getOutputStream();
 
-                    YuvImage image = new YuvImage(data, previewFormat, w, h, null);
+                    YuvImage image = new YuvImage(data, previewFormat, width, height, null);
                     ByteArrayOutputStream os = new ByteArrayOutputStream();
-                    Rect rect = new Rect(0, 0, w, h);
+                    Rect rect = new Rect(0, 0, width, height);
                     //1：将YUV数据格式转化成jpeg
                     if (!image.compressToJpeg(rect, 100, os)) return;
                     //2：将得到的字节数组压缩成bitmap
                     Bitmap bmp = CustomCameraUtils.decodeVideoBitmap(os.toByteArray(), 200);
-//		            Bitmap bmp = Util.decodeSampledBitmapFromFile(os.toByteArray(), 200, 200);
-//		           Bitmap bmp=BitmapFactory.decodeByteArray(data, offset, length, opts)
                     Matrix matrix = new Matrix();
                     matrix.setRotate(-90);
-//		            matrix.postScale(2.0f, 2.0f);
                     //3：旋转90
                     bmp = Bitmap.createBitmap(bmp, 0, 0, bmp.getWidth(), bmp.getHeight(), matrix, true);
                     //4：将最后的bitmap转化为字节流发送
@@ -303,7 +312,7 @@ public class VideoChatActivity extends BaseActivity implements SurfaceHolder.Cal
                     out.flush();
                     out.close();
                     socket.close();
-                } catch (IOException e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
@@ -313,13 +322,13 @@ public class VideoChatActivity extends BaseActivity implements SurfaceHolder.Cal
     @Override
     public void onBitmapLoaded(Bitmap bitmap) {
         handler.obtainMessage(REFRESH, bitmap).sendToTarget();
-        if (stop) {
+        if (activityNotFocused) {
             try {
                 //代码实现模拟用户按下back键
                 String keyCommand = "input keyevent " + KeyEvent.KEYCODE_BACK;
                 Runtime runtime = Runtime.getRuntime();
                 runtime.exec(keyCommand);
-                stop = false;
+                activityNotFocused = false;
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -340,7 +349,7 @@ public class VideoChatActivity extends BaseActivity implements SurfaceHolder.Cal
         public void run() {
             InetAddress address = null;
             try {
-                address = InetAddress.getByName(chatterIP);
+                address = InetAddress.getByName(ipAddress);
                 while (go) {
                     int count = sockets.size();
                     if (count < poolSize) {
@@ -402,14 +411,14 @@ public class VideoChatActivity extends BaseActivity implements SurfaceHolder.Cal
         }
         popupWindow.setContentView(view);
         textView.setText(txt);
-        if (started)//Activity已经渲染完毕
+        if (viewRenderFinished)//Activity已经渲染完毕
             popupWindow.showAtLocation(mSurfaceView, Gravity.CENTER, 0, 0);
         else {//Activity还未渲染完毕
             new Thread(new Runnable() {
                 @Override
                 public void run() {
                     try {
-                        while (!started) {
+                        while (!viewRenderFinished) {
                             Thread.sleep(500);
                         }
                         handler.sendEmptyMessage(SHOW_DIALOG);
@@ -426,36 +435,35 @@ public class VideoChatActivity extends BaseActivity implements SurfaceHolder.Cal
      *
      * @param queue
      */
-    private void ergodicMessage(Queue<UDPMessage> queue) {
-        Iterator<UDPMessage> iterator = queue.iterator();
-        UDPMessage message;
+    private void ergodicMessage(Queue<UDPMessageBean> queue) {
+        Iterator<UDPMessageBean> iterator = queue.iterator();
+        UDPMessageBean message;
         while (iterator.hasNext()) {
             message = iterator.next();
-            SystUtils.o("ergodicMessage=> " + message.getType());
             switch (message.getType()) {
-                case Listener.RECEIVE_MSG:
+                case IListener.RECEIVE_MSG:
                     myMessages.add(message);
                     break;
-                case Listener.ASK_VIDEO:
+                case IListener.ASK_VIDEO:
                     showDialog("对方请求视屏,同意吗？", new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            sendMsg(CustomApplication.getCustomApplication().getMyUdpMessage("", Listener.REPLAY_VIDEO_ALLOW));
+                            sendMsg(CustomApplication.getCustomApplication().getMyUdpMessage("", IListener.REPLAY_VIDEO_ALLOW));
                             if (popupWindow != null) popupWindow.dismiss();
                         }
                     }, new View.OnClickListener() {
 
                         @Override
                         public void onClick(View v) {
-                            sendMsg(CustomApplication.getCustomApplication().getMyUdpMessage("", Listener.REPLAY_VIDEO_NOT_ALLOW));
+                            sendMsg(CustomApplication.getCustomApplication().getMyUdpMessage("", IListener.REPLAY_VIDEO_NOT_ALLOW));
                             if (popupWindow != null) popupWindow.dismiss();
                         }
                     }, true);
                     break;
-                case Listener.REPLAY_VIDEO_ALLOW:
+                case IListener.REPLAY_VIDEO_ALLOW:
                     if (popupWindow != null) popupWindow.dismiss();
                     break;
-                case Listener.REPLAY_VIDEO_NOT_ALLOW:
+                case IListener.REPLAY_VIDEO_NOT_ALLOW:
                     SystUtils.showToast("对方拒绝视屏");
                     break;
             }
@@ -466,26 +474,26 @@ public class VideoChatActivity extends BaseActivity implements SurfaceHolder.Cal
     /**
      * 发送消息
      */
-    private void sendMsg(UDPMessage msg) {
+    private void sendMsg(UDPMessageBean msg) {
         if (binder != null) {
-            if (CustomApplication.getCustomApplication().getLocalIp().equals(chatterIP)) {
+            if (CustomApplication.getCustomApplication().getLocalIp().equals(ipAddress)) {
                 if (chatter == null) {
-                    chatter = new User();
-                    chatter.setIp(chatterIP);
+                    chatter = new UserBean();
+                    chatter.setIp(ipAddress);
                 }
             } else {
-                chatter = binder.getUsers().get(chatterIP);
+                chatter = binder.getUsers().get(ipAddress);
             }
             //对方下线 ||（在线&&心跳包检测超时）—>网络断开
             if (chatter == null || (chatter != null && !chatter.checkOnline())) {
                 SystUtils.showToast("对方已不在线");
-                binder.getUsers().remove(chatterIP);
+                binder.getUsers().remove(ipAddress);
                 sendBroadcast(new Intent(AppConstant.ACTION_ADD_USER));
             }
             try {
                 if (chatter != null)
-                    binder.sendMsg(msg, InetAddress.getByName(chatterIP));
-                if (Listener.RECEIVE_MSG == Integer.valueOf(msg.getType()))//如果是文本消息
+                    binder.sendMsg(msg, InetAddress.getByName(ipAddress));
+                if (IListener.RECEIVE_MSG == Integer.valueOf(msg.getType()))//如果是文本消息
                     myMessages.add(msg);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -493,7 +501,7 @@ public class VideoChatActivity extends BaseActivity implements SurfaceHolder.Cal
         } else {
             unbindService(connection);
             Intent intent = new Intent(VideoChatActivity.this, ChatService.class);
-            bindService(intent, connection = new MyServiceConnection(), Context.BIND_AUTO_CREATE);
+            bindService(intent, connection = new CustomServiceConnection(), Context.BIND_AUTO_CREATE);
             Toast.makeText(this, "未发送出去,请重新发送", Toast.LENGTH_SHORT).show();
         }
     }
@@ -502,40 +510,35 @@ public class VideoChatActivity extends BaseActivity implements SurfaceHolder.Cal
         @Override
         public void onReceive(Context context, Intent intent) {
             if (binder != null) {
-                users.clear();
-                Set<Map.Entry<String, User>> set = binder.getUsers().entrySet();
-                for (Map.Entry<String, User> entry : set)
-                    users.add(entry.getValue());
-                if (users.size() > 0) {
-                    connectIPTV.setText(users.get(0).getIp() + "");
-                    chatterIP = users.get(0).getIp();
+                userBeen.clear();
+                Set<Map.Entry<String, UserBean>> set = binder.getUsers().entrySet();
+                for (Map.Entry<String, UserBean> entry : set)
+                    userBeen.add(entry.getValue());
+                if (userBeen.size() > 0) {
+                    connectIPTV.setText(userBeen.get(0).getIp() + "");
+                    ipAddress = userBeen.get(0).getIp();
                     if (!voiceListenerOpened) openVoice();
                 }
             } else {
                 unbindService(connection);
                 binded = false;
-                bindService(new Intent(VideoChatActivity.this, ChatService.class), connection = new MyServiceConnection(), Context.BIND_AUTO_CREATE);
+                bindService(new Intent(VideoChatActivity.this, ChatService.class), connection = new CustomServiceConnection(), Context.BIND_AUTO_CREATE);
             }
         }
 
     }
 
-    public class MyServiceConnection implements ServiceConnection {
+    public class CustomServiceConnection implements ServiceConnection {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-            SystUtils.o("onServiceConnected================>");
             binder = (ChatService.MyBinder) service;
-            if (CustomApplication.getCustomApplication().getLocalIp().equals(chatterIP)) {
-                chatter = new User();
-                chatter.setIp(chatterIP);
-            } else chatter = binder.getUsers().get(chatterIP);
-
-//            chatterDeviceCode = chatter.getDeviceCode();
-            Queue<UDPMessage> queue = binder.getMessages().get(chatter.getIp());
-            if (queue != null) {//从后台遍历读取数据
-                ergodicMessage(queue);
-            }
-            started = true;
+            if (CustomApplication.getCustomApplication().getLocalIp().equals(ipAddress)) {
+                chatter = new UserBean();
+                chatter.setIp(ipAddress);
+            } else chatter = binder.getUsers().get(ipAddress);
+            Queue<UDPMessageBean> queue = binder.getMessages().get(chatter.getIp());
+            if (queue != null) ergodicMessage(queue);//从后台遍历读取数据
+            viewRenderFinished = true;
         }
 
         @Override
@@ -544,7 +547,7 @@ public class VideoChatActivity extends BaseActivity implements SurfaceHolder.Cal
 
     }
 
-    public class MessageUpdateBroadcastReceiver extends BroadcastReceiver {
+    public class MessageUpdateReceiver extends BroadcastReceiver {
         public static final String ACTION_HEARTBEAT = "com.mmj.handdetectorcalling.heartbeat";
         public static final String ACTION_NOTIFY_DATA = "com.mmj.handdetectorcalling.notifydata";
 
@@ -553,20 +556,22 @@ public class VideoChatActivity extends BaseActivity implements SurfaceHolder.Cal
             if (intent != null && ACTION_HEARTBEAT.equals(intent.getAction())) {//心跳包检测
                 if (binder != null)
                     try {
-                        binder.sendMsg(CustomApplication.getCustomApplication().getMyUdpMessage("", Listener.HEART_BEAT), InetAddress.getByName(chatterIP));//发送心跳包
+                        binder.sendMsg(CustomApplication.getCustomApplication()
+                                        .getMyUdpMessage("", IListener.HEART_BEAT),
+                                InetAddress.getByName(ipAddress));//发送心跳包
                     } catch (UnknownHostException e) {
                         e.printStackTrace();
                     }
                 return;
             } else if (ACTION_NOTIFY_DATA.equals(intent.getAction())) {//刷新消息
                 if (binder != null) {
-                    Queue<UDPMessage> queue = binder.getMessages().get(chatterIP);
+                    Queue<UDPMessageBean> queue = binder.getMessages().get(ipAddress);
                     if (queue != null)//从后台遍历读取数据
                         ergodicMessage(queue);
                 } else {
                     unbindService(connection);
                     Intent intent1 = new Intent(VideoChatActivity.this, ChatService.class);
-                    bindService(intent1, connection = new MyServiceConnection(), Context.BIND_AUTO_CREATE);
+                    bindService(intent1, connection = new CustomServiceConnection(), Context.BIND_AUTO_CREATE);
                 }
             }
         }
@@ -574,7 +579,7 @@ public class VideoChatActivity extends BaseActivity implements SurfaceHolder.Cal
 
     @Override
     protected void onPause() {
-        stop = true;
+        activityNotFocused = true;
         super.onPause();
     }
 
@@ -591,12 +596,12 @@ public class VideoChatActivity extends BaseActivity implements SurfaceHolder.Cal
         if (binded)
             unbindService(connection);
         stopService(new Intent(VideoChatActivity.this, ChatService.class));
-        unregisterReceiver(messageUpdateBroadcastReceiver);
+        unregisterReceiver(messageUpdateReceiver);
     }
 
     private void openVoice() {
         try {
-            voiceListener = UDPVoiceListener.getInstance(InetAddress.getByName(chatterIP));
+            voiceListener = UDPVoiceIListener.getInstance(InetAddress.getByName(ipAddress));
             voiceListener.open();
             voiceListenerOpened = true;
         } catch (Exception e) {

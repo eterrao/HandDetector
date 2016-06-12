@@ -1,0 +1,84 @@
+package com.mmj.handdetectorcalling.listeners;
+
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+
+import com.mmj.handdetectorcalling.listeners.interfaces.OnBitmapLoaded;
+import com.mmj.handdetectorcalling.utils.AppConstant;
+
+import java.io.IOException;
+import java.net.Socket;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+/**
+ * 视频监听
+ */
+public class TCPVideoReceiveIListener extends TCPIListener {
+    public static final int THREAD_COUNT = 80;//线程数
+
+    private int port = AppConstant.VIDEO_PORT;
+    //用来加载图片
+    private ExecutorService executors = Executors.newFixedThreadPool(THREAD_COUNT);
+
+    private OnBitmapLoaded bitmapLoaded;
+
+    boolean isReceived;//刚进来默认是正在接收数据的
+
+    private static TCPVideoReceiveIListener instance;
+
+    private TCPVideoReceiveIListener() {
+    }
+
+    public static TCPVideoReceiveIListener getInstance() {
+        return instance == null ? instance = new TCPVideoReceiveIListener() : instance;
+    }
+
+    @Override
+    void init() {
+        setPort(port);
+    }
+
+    public void onReceiveData(final Socket socket) throws IOException {
+        connectionReceive(socket);
+    }
+
+    private void connectionReceive(final Socket socket) {
+        executors.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Bitmap bitmap = BitmapFactory.decodeStream(socket.getInputStream());
+                    bitmapLoaded.onBitmapLoaded(bitmap);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
+
+    public OnBitmapLoaded getBitmapLoaded() {
+        return bitmapLoaded;
+    }
+
+    public void setBitmapLoaded(OnBitmapLoaded bitmapLoaded) {
+        this.bitmapLoaded = bitmapLoaded;
+    }
+
+    @Override
+    public void noticeReceiveError(Exception e) {
+    }
+
+
+    @Override
+    public void noticeSendFileError(IOException e) {
+    }
+
+    @Override
+    public void close() throws IOException {
+        super.close();
+        isReceived = false;
+        executors.shutdownNow();
+        instance = null;
+    }
+}

@@ -18,4 +18,9 @@ public class ScreenUtils {
         dm = context.getResources().getDisplayMetrics();
         return dm.heightPixels;
     }
+
+
+    public static int px2dp(int pxValue, Context context) {
+        return (int) (pxValue / context.getResources().getDisplayMetrics().density + 0.5f);
+    }
 }

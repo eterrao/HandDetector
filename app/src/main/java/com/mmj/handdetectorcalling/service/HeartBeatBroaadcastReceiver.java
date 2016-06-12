@@ -15,7 +15,7 @@ public class HeartBeatBroaadcastReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         Intent intent2 = new Intent();
-        intent2.setAction(VideoChatActivity.MessageUpdateBroadcastReceiver.ACTION_HEARTBEAT);
+        intent2.setAction(VideoChatActivity.MessageUpdateReceiver.ACTION_HEARTBEAT);
         context.sendBroadcast(intent2);
 //		intent.getData().getSchemeSpecificPart();
         intent.getData();

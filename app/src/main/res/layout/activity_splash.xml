@@ -2,6 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/material_light_blue"
     android:gravity="center"
     android:orientation="vertical"
     android:padding="10dp">
@@ -11,12 +12,14 @@
         android:layout_width="100dp"
         android:layout_height="100dp"
         android:padding="15dp"
+        android:scaleType="centerCrop"
         android:src="@drawable/ic_calling" />
 
     <ImageView
         android:id="@+id/btn_video"
         android:layout_width="100dp"
         android:layout_height="100dp"
+        android:layout_marginTop="30dp"
         android:src="@drawable/ic_live" />
 
 </LinearLayout>
