@@ -16,11 +16,6 @@ public class SystUtils {
     public static final String TAG = SystUtils.class.getSimpleName() + "debug==>";
     public static final String O_TAG = "xxxxxxxxx, ";
 
-    public static String capturePath = null;
-    public static boolean cameraCanCaptured = true;
-
-
-
     public static void showToast(String toastMessage) {
         Toast.makeText(CustomApplication.getContext(), toastMessage, Toast.LENGTH_SHORT).show();
     }

@@ -6,23 +6,17 @@
     android:orientation="vertical"
     android:padding="10dp">
 
-    <Button
-        android:id="@+id/btn_gesture_camera"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:visibility="gone"
-        android:text="视觉手势拍照" />
-
-    <Button
+    <ImageView
         android:id="@+id/btn_gesture_calling"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="重力感应手势拨号" />
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:padding="15dp"
+        android:src="@drawable/ic_calling" />
 
-    <Button
+    <ImageView
         android:id="@+id/btn_video"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="实时视频通信" />
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:src="@drawable/ic_live" />
 
 </LinearLayout>

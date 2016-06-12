@@ -2,6 +2,7 @@ package com.mmj.handdetectorcalling.ui.activity;
 
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 
 import com.mmj.handdetectorcalling.R;
 import com.mmj.handdetectorcalling.utils.SystUtils;
@@ -11,9 +12,8 @@ import com.mmj.handdetectorcalling.utils.SystUtils;
  */
 public class SplashActivity extends BaseActivity implements View.OnClickListener {
 
-    private Button cameraBtn;
-    private Button callingBtn;
-    private Button videoBtn;
+    private ImageView callingIV;
+    private ImageView videoIV;
 
 
     @Override
@@ -23,16 +23,14 @@ public class SplashActivity extends BaseActivity implements View.OnClickListener
     }
 
     private void initWidget() {
-        cameraBtn = (Button) findViewById(R.id.btn_gesture_camera);
-        callingBtn = (Button) findViewById(R.id.btn_gesture_calling);
-        videoBtn = (Button) findViewById(R.id.btn_video);
+        callingIV = (ImageView) findViewById(R.id.btn_gesture_calling);
+        videoIV = (ImageView) findViewById(R.id.btn_video);
     }
 
     @Override
     protected void setListeners() {
-        cameraBtn.setOnClickListener(this);
-        callingBtn.setOnClickListener(this);
-        videoBtn.setOnClickListener(this);
+        callingIV.setOnClickListener(this);
+        videoIV.setOnClickListener(this);
     }
 
     @Override
@@ -45,10 +43,9 @@ public class SplashActivity extends BaseActivity implements View.OnClickListener
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.btn_gesture_camera:
-                SystUtils.intoActivity(SplashActivity.this, CameraGestureControlActivity.class);
-                break;
+
             case R.id.btn_gesture_calling:
-                SystUtils.intoActivity(SplashActivity.this, MainActivity.class);
+                SystUtils.intoActivity(SplashActivity.this, CallingActivity.class);
                 break;
             case R.id.btn_video:
                 SystUtils.intoActivity(SplashActivity.this, VideoChatActivity.class);

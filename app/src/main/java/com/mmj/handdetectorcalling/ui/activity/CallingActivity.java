@@ -9,16 +9,14 @@ import android.hardware.SensorManager;
 import android.net.Uri;
 import android.os.Vibrator;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.mmj.handdetectorcalling.R;
-import com.mmj.handdetectorcalling.service.DaemonService;
 import com.mmj.handdetectorcalling.utils.AppConstant;
+import com.mmj.handdetectorcalling.utils.SystUtils;
 
 /**
  * APP设计思路：
@@ -29,7 +27,7 @@ import com.mmj.handdetectorcalling.utils.AppConstant;
  * 5.可设置熄屏状态下
  */
 
-public class MainActivity extends BaseActivity implements View.OnClickListener, SensorEventListener {
+public class CallingActivity extends BaseActivity implements View.OnClickListener, SensorEventListener {
 
     private TextView phoneNumTV;
     private EditText phoneNumET;
@@ -56,7 +54,6 @@ public class MainActivity extends BaseActivity implements View.OnClickListener, 
             phoneNumTV.setText(phoneNumTemp);
         }
         initSensor();
-        startDaemonService();
     }
 
     private void initWidget() {
@@ -78,11 +75,6 @@ public class MainActivity extends BaseActivity implements View.OnClickListener, 
     private void initSensor() {
         mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         mVibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
-    }
-
-    private void startDaemonService() {
-        Intent serviceIntent = new Intent(MainActivity.this, DaemonService.class);
-        startService(serviceIntent);
     }
 
     @Override
@@ -122,29 +114,15 @@ public class MainActivity extends BaseActivity implements View.OnClickListener, 
         if (mSensorManager != null) mSensorManager.unregisterListener(this);
     }
 
-    private void callingPhone() {
-        String phoneNumber = phoneNumTV.getText().toString();
-        if (!TextUtils.isEmpty(phoneNumber)
-                && !phoneNumber.equals("110")
-                || !phoneNumber.equals("0")) {
-            Intent callingIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + phoneNumber));
-            startActivity(callingIntent);
-        } else {
-            Toast.makeText(MainActivity.this, "呼叫的号码不正确", Toast.LENGTH_SHORT).show();
-        }
-    }
-
     @Override
     public void onSensorChanged(SensorEvent event) {
         int sensorType = event.sensor.getType();
         //values[0]:X轴，values[1]：Y轴，values[2]：Z轴
         float[] values = event.values;
         if (sensorType == Sensor.TYPE_ACCELEROMETER) {
-            if ((Math.abs(values[0]) > 17 || Math.abs(values[1]) > 17 || Math
-                    .abs(values[2]) > 17)) {
-                Log.e("sensor x ", "============ values[0] = " + values[0]);
-                Log.e("sensor y ", "============ values[1] = " + values[1]);
-                Log.e("sensor z ", "============ values[2] = " + values[2]);
+            if ((Math.abs(values[0]) > 17
+                    || Math.abs(values[1]) > 17
+                    || Math.abs(values[2]) > 17)) {
                 // 摇动手机后震动提示
                 mVibrator.vibrate(500);
                 // 随之呼叫号码
@@ -153,9 +131,21 @@ public class MainActivity extends BaseActivity implements View.OnClickListener, 
         }
     }
 
+    private void callingPhone() {
+        String phoneNumber = phoneNumTV.getText().toString();
+        if (!TextUtils.isEmpty(phoneNumber)
+                && !phoneNumber.equals("110")
+                || !phoneNumber.equals("0")) {
+            Intent callingIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + phoneNumber));
+            startActivity(callingIntent);
+        } else {
+            SystUtils.showToast("呼叫的号码不正确");
+        }
+    }
+
+
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
-
     }
 
     @Override
@@ -185,14 +175,5 @@ public class MainActivity extends BaseActivity implements View.OnClickListener, 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-    }
-
-
-    public SensorManager getSensorManager() {
-        return mSensorManager;
-    }
-
-    public Vibrator getVibrator() {
-        return mVibrator;
     }
 }

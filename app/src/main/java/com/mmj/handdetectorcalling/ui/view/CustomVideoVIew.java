@@ -8,11 +8,15 @@ import android.util.AttributeSet;
 import android.view.View;
 
 /**
- * Created by raomengyang on 6/11/16.
+ * 自定义VideoView
+ * 实现对方视频通话回显
  */
 public class CustomVideoView extends View {
 
-    private Bitmap displayCallBackBitmap;
+    private static final int DISPLAY_WIDTH = 320; // 回显的宽、高
+    private static final int DISPLAY_HEIGHT = 568;
+
+    private Bitmap displayCallBackBitmap; // 以Bitmap传入当前View，并通过View的onDraw方法绘制对方视频的每一帧
 
     public CustomVideoView(Context context) {
         super(context);
@@ -30,7 +34,7 @@ public class CustomVideoView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         if (displayCallBackBitmap != null) {
-            canvas.drawBitmap(ThumbnailUtils.extractThumbnail(displayCallBackBitmap, 320, 568), 0, 0, null);
+            canvas.drawBitmap(ThumbnailUtils.extractThumbnail(displayCallBackBitmap, DISPLAY_WIDTH, DISPLAY_HEIGHT), 0, 0, null);
         }
     }
 

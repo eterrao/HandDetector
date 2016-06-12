@@ -17,7 +17,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import com.mmj.handdetectorcalling.R;
-import com.mmj.handdetectorcalling.ui.activity.MainActivity;
+import com.mmj.handdetectorcalling.ui.activity.CallingActivity;
 import com.mmj.handdetectorcalling.utils.AppConstant;
 
 /**
@@ -78,7 +78,7 @@ public class DaemonService extends Service implements SensorEventListener {
 
     private void initNotification() {
         Notification notification = new Notification(R.drawable.icon, "HandDetectorCalling", System.currentTimeMillis());
-        Intent notificationIT = new Intent(DaemonService.this, MainActivity.class);
+        Intent notificationIT = new Intent(DaemonService.this, CallingActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIT, 0);
         notification.setLatestEventInfo(this, "HandDetectorCalling", "正在后台运行", pendingIntent);
         startForeground(1, notification);

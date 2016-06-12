@@ -54,7 +54,7 @@ public class UDPMessageListener extends UDPListener {
     @Override
     public void onReceive(byte[] data, DatagramPacket packet) {
         try {
-            String temp = new String(data, 0, packet.getLength(), AppConstant.ENCOD);//得到接收的消息
+            String temp = new String(data, 0, packet.getLength(), AppConstant.ENCODE_FORMAT);//得到接收的消息
             UDPMessage msg = new UDPMessage(new JSONObject(temp));
             SystUtils.o("收到消息：" + msg.toString());
             String sourceIp = packet.getAddress().getHostAddress();//对方ip

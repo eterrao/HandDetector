@@ -79,7 +79,7 @@ public abstract class UDPListener extends Listener {
             @Override
             public void run() {
                 try {
-                    DatagramPacket packet = new DatagramPacket(msg.getBytes(AppConstant.ENCOD), msg.length(), destIp, destPort);
+                    DatagramPacket packet = new DatagramPacket(msg.getBytes(AppConstant.ENCODE_FORMAT), msg.length(), destIp, destPort);
                     socket.send(packet);
                     if (!isOnline) socket.close();
                 } catch (IOException e) {
