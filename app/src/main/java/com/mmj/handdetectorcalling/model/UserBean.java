@@ -3,7 +3,7 @@ package com.mmj.handdetectorcalling.model;
 import java.io.Serializable;
 
 /**
- * 用户实体类
+ * 聊天的用户实体类
  */
 public class UserBean implements Serializable {
     private static final long serialVersionUID = -5062775818842005386L;

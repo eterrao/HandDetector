@@ -66,13 +66,13 @@ public abstract class TCPIListener extends IListener {
 
 
     @Override
-    public void open() throws IOException {
+    public void openListener() throws IOException {
         createServer();
         setPriority(MAX_PRIORITY);
     }
 
     @Override
-    public void close() throws IOException {
+    public void closeListener() throws IOException {
         go = false;
         running = false;
         interrupt();

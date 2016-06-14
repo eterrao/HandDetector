@@ -22,18 +22,17 @@ import android.view.KeyEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.PopupWindow;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.mmj.handdetectorcalling.R;
 import com.mmj.handdetectorcalling.application.CustomApplication;
 import com.mmj.handdetectorcalling.listeners.IListener;
 import com.mmj.handdetectorcalling.listeners.TCPVideoReceiveIListener;
 import com.mmj.handdetectorcalling.listeners.UDPVoiceIListener;
-import com.mmj.handdetectorcalling.listeners.interfaces.OnBitmapLoaded;
+import com.mmj.handdetectorcalling.listeners.interfaces.OnCameraCallbackBitmapLoaded;
 import com.mmj.handdetectorcalling.model.UDPMessageBean;
 import com.mmj.handdetectorcalling.model.UserBean;
 import com.mmj.handdetectorcalling.service.ChatService;
@@ -53,7 +52,6 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -64,7 +62,8 @@ import java.util.concurrent.Executors;
 /**
  * Created by raomengyang on 6/11/16.
  */
-public class VideoChatActivity extends BaseActivity implements View.OnClickListener, SurfaceHolder.Callback, Camera.PreviewCallback, OnBitmapLoaded {
+public class VideoChatActivity extends BaseActivity implements View.OnClickListener,
+        SurfaceHolder.Callback, Camera.PreviewCallback, OnCameraCallbackBitmapLoaded {
 
     private SurfaceView mSurfaceView;
     private CustomVideoView mCustomVideoView;
@@ -76,12 +75,11 @@ public class VideoChatActivity extends BaseActivity implements View.OnClickListe
     private Camera mCamera;
 
     private CustomServiceConnection connection;
-    private UserBean chatter;//对方聊天人
-    private ChatService.MyBinder binder;
+    private UserBean videoCommunicator; // 进行视频通信的人
+    private ChatService.CustomBinder binder; // 让Activity获得与其绑定的Service对象
 
-    private final int SHOW_DIALOG = 0XF1001;
-    private final int REFRESH = 0XF1002;
-
+    private final int SHOW_VIDEO_REQUEST_DIALOG = 0XF1001;
+    private final int REFRESH_VIDEO_VIEW_BITMAP = 0XF1002;
 
     private String ipAddress;//记录当前用户ip
 
@@ -94,8 +92,8 @@ public class VideoChatActivity extends BaseActivity implements View.OnClickListe
     private boolean activityNotFocused; // 标识activity被遮挡
     private boolean binded;
 
-    private int width;  //宽度
-    private int height;
+    private int width;  //预览宽度
+    private int height; // 预览高度
     private int previewFormat;
     private boolean shouldFullScreen = false;
 
@@ -112,14 +110,18 @@ public class VideoChatActivity extends BaseActivity implements View.OnClickListe
     private ExecutorService executors = Executors.newFixedThreadPool(TCPVideoReceiveIListener.THREAD_COUNT);
     private int port = AppConstant.VIDEO_PORT;
 
+    /**
+     * handler
+     * 用于异步的接收消息，做出相对应的操作
+     */
     private Handler handler = new Handler() {
         public void handleMessage(android.os.Message msg) {
             switch (msg.what) {
-                case SHOW_DIALOG:
+                case SHOW_VIDEO_REQUEST_DIALOG:
                     if (popupWindow != null)
                         popupWindow.showAtLocation(mSurfaceView, Gravity.CENTER, 0, 0);
                     break;
-                case REFRESH:
+                case REFRESH_VIDEO_VIEW_BITMAP:
                     mCustomVideoView.setDisplayCallBackBitmap((Bitmap) msg.obj);
                     break;
             }
@@ -138,6 +140,7 @@ public class VideoChatActivity extends BaseActivity implements View.OnClickListe
         mSurfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
         mSurfaceHolder.addCallback(this);
         mCustomVideoView = (CustomVideoView) findViewById(R.id.cvv_video_u);
+        setCustomVideoViewSmall();
         connectBtn = (Button) findViewById(R.id.btn_connect);
         connectIPTV = (TextView) findViewById(R.id.tv_connect_ip);
     }
@@ -147,8 +150,8 @@ public class VideoChatActivity extends BaseActivity implements View.OnClickListe
         connectBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                sendMsg(CustomApplication.getCustomApplication().getMyUdpMessage("", IListener.ASK_VIDEO));
-                SystUtils.showToast("已发送请求，对方同意后自动进行视屏聊天");
+                sendMsg(CustomApplication.getCustomApplication().getMyUdpMessage("", IListener.VIDEO_CHAT_REQUEST));
+                SystUtils.showToast("已发送请求，对方同意后自动进行视频聊天");
             }
         });
         mSurfaceView.setOnClickListener(this);
@@ -163,45 +166,61 @@ public class VideoChatActivity extends BaseActivity implements View.OnClickListe
 
             case R.id.cvv_video_u:
                 if (!shouldFullScreen) {
-                    shouldFullScreen = true;
-                    ViewGroup.LayoutParams layoutParams = mCustomVideoView.getLayoutParams();
-                    layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT;
-                    layoutParams.width = ViewGroup.LayoutParams.MATCH_PARENT;
-                    mCustomVideoView.setLayoutParams(layoutParams);
+                    setCustomVideoViewFullScreen();
                 } else {
                     shouldFullScreen = false;
-                    ViewGroup.LayoutParams layoutParams = mCustomVideoView.getLayoutParams();
-                    layoutParams.height = ScreenUtils.px2dp(ScreenUtils.getScreenHeight(this) / 4, this);
-                    layoutParams.width = ScreenUtils.px2dp(ScreenUtils.getScreenWidth(this) / 4, this);
-                    mCustomVideoView.setLayoutParams(layoutParams);
+                    setCustomVideoViewSmall();
                 }
                 break;
         }
+    }
+
+    private void setCustomVideoViewFullScreen() {
+        shouldFullScreen = true;
+        RelativeLayout.LayoutParams layoutParams = (RelativeLayout.LayoutParams) mCustomVideoView.getLayoutParams();
+        layoutParams.height = RelativeLayout.LayoutParams.MATCH_PARENT;
+        layoutParams.width = RelativeLayout.LayoutParams.MATCH_PARENT;
+        layoutParams.setMargins(0, 0, 0, 0);
+        mCustomVideoView.setDisplayHeight(ScreenUtils.getScreenHeight(this));
+        mCustomVideoView.setDisplayWidth(ScreenUtils.getScreenWidth(this));
+        mCustomVideoView.setLayoutParams(layoutParams);
+    }
+
+    private void setCustomVideoViewSmall() {
+        RelativeLayout.LayoutParams layoutParams = (RelativeLayout.LayoutParams) mCustomVideoView.getLayoutParams();
+        layoutParams.height = ScreenUtils.getScreenHeight(this) / 4;
+        layoutParams.width = ScreenUtils.getScreenWidth(this) / 4;
+        layoutParams.setMargins(23, 23, 23, 23);
+        mCustomVideoView.setDisplayHeight(ScreenUtils.getScreenHeight(this) / 4);
+        mCustomVideoView.setDisplayWidth(ScreenUtils.getScreenWidth(this) / 4);
+        mCustomVideoView.setLayoutParams(layoutParams);
     }
 
     @Override
     protected void initData() {
         super.initData();
         init();
-        String ip = CustomApplication.getCustomApplication().getLocalIp();
-        if (ip == null) {
-            SystUtils.showToast("请检测wifi");
+        String localIp = CustomApplication.getCustomApplication().getLocalIp();
+        if (localIp == null) {
+            SystUtils.showToast("请检测网络状态，确保在同一局域网内");
             return;
-        } else ipAddress = ip;
+        } else ipAddress = localIp;
+
+        // 该线程启动视频连接
         new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
                     videoReceiveListener = TCPVideoReceiveIListener.getInstance();
-                    videoReceiveListener.setBitmapLoaded(VideoChatActivity.this);
+                    videoReceiveListener.setOnCameraCallbackBitmapLoaded(VideoChatActivity.this);
                     if (!videoReceiveListener.isRunning())
-                        videoReceiveListener.open();//先监听端口，然后连接
+                        videoReceiveListener.openListener();//先监听端口，然后连接
                 } catch (IOException e1) {
                     e1.printStackTrace();
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            SystUtils.showToast("非常抱歉,视屏连接失败");
+                            SystUtils.showToast("非常抱歉,视频连接失败");
                             finish();
                         }
                     });
@@ -215,6 +234,7 @@ public class VideoChatActivity extends BaseActivity implements View.OnClickListe
         //绑定到service
         Intent intent = new Intent(VideoChatActivity.this, ChatService.class);
         bindService(intent, connection = new CustomServiceConnection(), Context.BIND_AUTO_CREATE);
+        binded = true;
         //注册更新广播
         IntentFilter broadcastFilter = new IntentFilter();
         broadcastFilter.addAction(MessageUpdateReceiver.ACTION_NOTIFY_DATA);
@@ -271,7 +291,7 @@ public class VideoChatActivity extends BaseActivity implements View.OnClickListe
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
-
+        mCamera.release();
     }
 
     protected void setDisplayOrientation(Camera camera, int angle) {
@@ -320,8 +340,8 @@ public class VideoChatActivity extends BaseActivity implements View.OnClickListe
     }
 
     @Override
-    public void onBitmapLoaded(Bitmap bitmap) {
-        handler.obtainMessage(REFRESH, bitmap).sendToTarget();
+    public void onCameraCallbackBitmapLoaded(Bitmap bitmap) {
+        handler.obtainMessage(REFRESH_VIDEO_VIEW_BITMAP, bitmap).sendToTarget();
         if (activityNotFocused) {
             try {
                 //代码实现模拟用户按下back键
@@ -337,64 +357,14 @@ public class VideoChatActivity extends BaseActivity implements View.OnClickListe
 
 
     /**
-     * socket池，用来缓存
+     * 视频申请提示框
      */
-    @Deprecated
-    class SocketPool extends Thread {
-        private List<Socket> sockets = new LinkedList<Socket>();
-        private final int poolSize = 30;
-        private boolean go = true;
-
-        @Override
-        public void run() {
-            InetAddress address = null;
-            try {
-                address = InetAddress.getByName(ipAddress);
-                while (go) {
-                    int count = sockets.size();
-                    if (count < poolSize) {
-                        for (int i = 0; i < poolSize - count; i++) {
-                            sockets.add(new Socket(address, port));
-                        }
-                    }
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        public Socket getSocket() {
-            if (!sockets.isEmpty()) {
-                Socket socket = sockets.get(0);
-                sockets.remove(0);
-                return socket;
-            }
-            return null;
-        }
-
-        public void close() {
-            go = false;
-            for (Socket socket : sockets) {
-                try {
-                    socket.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    }
-
-    /**
-     * 显示提醒框
-     */
-    private void showDialog(String txt, View.OnClickListener ok, View.OnClickListener cancl, boolean buttonShow) {
+    private void showVideoChatPushDialog(String txt, View.OnClickListener ok, View.OnClickListener cancl, boolean buttonShow) {
         if (popupWindow != null)
             popupWindow.dismiss();
         popupWindow = new PopupWindow(getApplicationContext());
-        int windowWdith = ScreenUtils.getScreenWidth(CustomApplication.getContext()) * 3 / 4;
-        int windowHeight = ScreenUtils.getScreenHeight(CustomApplication.getContext()) * 2 / 7;
-        popupWindow.setWidth(windowWdith);
-//        popupWindow.setHeight(windowHeight);
+        int windowWdith = ScreenUtils.getScreenWidth(CustomApplication.getContext()) * 3 / 4; // 大概3/4的屏占比
+        popupWindow.setWidth(windowWdith); // 只设置宽度，高度已定
         popupWindow.setFocusable(false);
         popupWindow.setOutsideTouchable(false);
         popupWindow.setBackgroundDrawable(new BitmapDrawable());// 这个是为了点击“返回Back”也能使其消失，并且并不会影响你的背景
@@ -413,7 +383,8 @@ public class VideoChatActivity extends BaseActivity implements View.OnClickListe
         textView.setText(txt);
         if (viewRenderFinished)//Activity已经渲染完毕
             popupWindow.showAtLocation(mSurfaceView, Gravity.CENTER, 0, 0);
-        else {//Activity还未渲染完毕
+        else {
+            //Activity还未渲染完毕
             new Thread(new Runnable() {
                 @Override
                 public void run() {
@@ -421,7 +392,7 @@ public class VideoChatActivity extends BaseActivity implements View.OnClickListe
                         while (!viewRenderFinished) {
                             Thread.sleep(500);
                         }
-                        handler.sendEmptyMessage(SHOW_DIALOG);
+                        handler.sendEmptyMessage(SHOW_VIDEO_REQUEST_DIALOG);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -431,11 +402,11 @@ public class VideoChatActivity extends BaseActivity implements View.OnClickListe
     }
 
     /**
-     * 从后台遍历消息
+     * 遍历消息队列，一旦有消息，则取出来
      *
      * @param queue
      */
-    private void ergodicMessage(Queue<UDPMessageBean> queue) {
+    private void traaversalMessageQueue(Queue<UDPMessageBean> queue) {
         Iterator<UDPMessageBean> iterator = queue.iterator();
         UDPMessageBean message;
         while (iterator.hasNext()) {
@@ -444,27 +415,27 @@ public class VideoChatActivity extends BaseActivity implements View.OnClickListe
                 case IListener.RECEIVE_MSG:
                     myMessages.add(message);
                     break;
-                case IListener.ASK_VIDEO:
-                    showDialog("对方请求视屏,同意吗？", new View.OnClickListener() {
+                case IListener.VIDEO_CHAT_REQUEST:
+                    showVideoChatPushDialog("对方请求视频,同意吗？", new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            sendMsg(CustomApplication.getCustomApplication().getMyUdpMessage("", IListener.REPLAY_VIDEO_ALLOW));
+                            sendMsg(CustomApplication.getCustomApplication().getMyUdpMessage("", IListener.VIDEO_CHAT_ALLOW));
                             if (popupWindow != null) popupWindow.dismiss();
                         }
                     }, new View.OnClickListener() {
 
                         @Override
                         public void onClick(View v) {
-                            sendMsg(CustomApplication.getCustomApplication().getMyUdpMessage("", IListener.REPLAY_VIDEO_NOT_ALLOW));
+                            sendMsg(CustomApplication.getCustomApplication().getMyUdpMessage("", IListener.VIDEO_CHAT_NOT_ALLOW));
                             if (popupWindow != null) popupWindow.dismiss();
                         }
                     }, true);
                     break;
-                case IListener.REPLAY_VIDEO_ALLOW:
+                case IListener.VIDEO_CHAT_ALLOW:
                     if (popupWindow != null) popupWindow.dismiss();
                     break;
-                case IListener.REPLAY_VIDEO_NOT_ALLOW:
-                    SystUtils.showToast("对方拒绝视屏");
+                case IListener.VIDEO_CHAT_NOT_ALLOW:
+                    SystUtils.showToast("对方拒绝视频");
                     break;
             }
         }
@@ -477,21 +448,21 @@ public class VideoChatActivity extends BaseActivity implements View.OnClickListe
     private void sendMsg(UDPMessageBean msg) {
         if (binder != null) {
             if (CustomApplication.getCustomApplication().getLocalIp().equals(ipAddress)) {
-                if (chatter == null) {
-                    chatter = new UserBean();
-                    chatter.setIp(ipAddress);
+                if (videoCommunicator == null) {
+                    videoCommunicator = new UserBean();
+                    videoCommunicator.setIp(ipAddress);
                 }
             } else {
-                chatter = binder.getUsers().get(ipAddress);
+                videoCommunicator = binder.getUsers().get(ipAddress);
             }
             //对方下线 ||（在线&&心跳包检测超时）—>网络断开
-            if (chatter == null || (chatter != null && !chatter.checkOnline())) {
+            if (videoCommunicator == null || (videoCommunicator != null && !videoCommunicator.checkOnline())) {
                 SystUtils.showToast("对方已不在线");
                 binder.getUsers().remove(ipAddress);
                 sendBroadcast(new Intent(AppConstant.ACTION_ADD_USER));
             }
             try {
-                if (chatter != null)
+                if (videoCommunicator != null)
                     binder.sendMsg(msg, InetAddress.getByName(ipAddress));
                 if (IListener.RECEIVE_MSG == Integer.valueOf(msg.getType()))//如果是文本消息
                     myMessages.add(msg);
@@ -502,10 +473,14 @@ public class VideoChatActivity extends BaseActivity implements View.OnClickListe
             unbindService(connection);
             Intent intent = new Intent(VideoChatActivity.this, ChatService.class);
             bindService(intent, connection = new CustomServiceConnection(), Context.BIND_AUTO_CREATE);
-            Toast.makeText(this, "未发送出去,请重新发送", Toast.LENGTH_SHORT).show();
+            SystUtils.showToast("未发送出去,请重新发送");
         }
     }
 
+    /**
+     * 与用户相关的广播接收器
+     * 用于从用户的Bean中获取对应的数据
+     */
     class UserBroadcastReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -531,13 +506,13 @@ public class VideoChatActivity extends BaseActivity implements View.OnClickListe
     public class CustomServiceConnection implements ServiceConnection {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-            binder = (ChatService.MyBinder) service;
+            binder = (ChatService.CustomBinder) service;
             if (CustomApplication.getCustomApplication().getLocalIp().equals(ipAddress)) {
-                chatter = new UserBean();
-                chatter.setIp(ipAddress);
-            } else chatter = binder.getUsers().get(ipAddress);
-            Queue<UDPMessageBean> queue = binder.getMessages().get(chatter.getIp());
-            if (queue != null) ergodicMessage(queue);//从后台遍历读取数据
+                videoCommunicator = new UserBean();
+                videoCommunicator.setIp(ipAddress);
+            } else videoCommunicator = binder.getUsers().get(ipAddress);
+            Queue<UDPMessageBean> queue = binder.getMessages().get(videoCommunicator.getIp());
+            if (queue != null) traaversalMessageQueue(queue);//从后台遍历读取数据
             viewRenderFinished = true;
         }
 
@@ -567,7 +542,7 @@ public class VideoChatActivity extends BaseActivity implements View.OnClickListe
                 if (binder != null) {
                     Queue<UDPMessageBean> queue = binder.getMessages().get(ipAddress);
                     if (queue != null)//从后台遍历读取数据
-                        ergodicMessage(queue);
+                        traaversalMessageQueue(queue);
                 } else {
                     unbindService(connection);
                     Intent intent1 = new Intent(VideoChatActivity.this, ChatService.class);
@@ -587,8 +562,8 @@ public class VideoChatActivity extends BaseActivity implements View.OnClickListe
     protected void onDestroy() {
         super.onDestroy();
         try {
-            videoReceiveListener.close();
-            voiceListener.close();
+            videoReceiveListener.closeListener();
+            voiceListener.closeListener();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -599,16 +574,19 @@ public class VideoChatActivity extends BaseActivity implements View.OnClickListe
         unregisterReceiver(messageUpdateReceiver);
     }
 
+    /**
+     * 开启语音通话
+     */
     private void openVoice() {
         try {
             voiceListener = UDPVoiceIListener.getInstance(InetAddress.getByName(ipAddress));
-            voiceListener.open();
+            voiceListener.openListener();
             voiceListenerOpened = true;
         } catch (Exception e) {
             e.printStackTrace();
             SystUtils.showToast("抱歉，语音打开失败");
             try {
-                voiceListener.close();
+                voiceListener.closeListener();
             } catch (IOException e1) {
                 e1.printStackTrace();
             }

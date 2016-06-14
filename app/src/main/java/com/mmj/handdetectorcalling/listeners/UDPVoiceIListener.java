@@ -13,7 +13,10 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 
 /**
- * 语音收发器
+ * 语音收发的监听器，语音通过UDP的方式传输
+ * UDP特点是连接快，传输快，因此用于语音的实时交流
+ * 缺点是不稳定，切不保证数据的完整性，
+ * 也就是说对方可能会收不到部分消息
  */
 public class UDPVoiceIListener extends UDPIListener {
 
@@ -104,13 +107,13 @@ public class UDPVoiceIListener extends UDPIListener {
     }
 
     @Override
-    public void open() throws IOException {
-        super.open();
+    public void openListener() throws IOException {
+        super.openListener();
     }
 
     @Override
-    public void close() throws IOException {
-        super.close();
+    public void closeListener() throws IOException {
+        super.closeListener();
         shouldContinue = false;
         if (audioTrack != null)
             audioTrack.stop();

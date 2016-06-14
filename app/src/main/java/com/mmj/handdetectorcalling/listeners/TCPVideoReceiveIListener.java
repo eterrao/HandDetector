@@ -3,7 +3,7 @@ package com.mmj.handdetectorcalling.listeners;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 
-import com.mmj.handdetectorcalling.listeners.interfaces.OnBitmapLoaded;
+import com.mmj.handdetectorcalling.listeners.interfaces.OnCameraCallbackBitmapLoaded;
 import com.mmj.handdetectorcalling.utils.AppConstant;
 
 import java.io.IOException;
@@ -13,6 +13,7 @@ import java.util.concurrent.Executors;
 
 /**
  * 视频监听
+ * 通过TCP传输，避免UDP传输会丢帧的问题
  */
 public class TCPVideoReceiveIListener extends TCPIListener {
     public static final int THREAD_COUNT = 80;//线程数
@@ -21,7 +22,7 @@ public class TCPVideoReceiveIListener extends TCPIListener {
     //用来加载图片
     private ExecutorService executors = Executors.newFixedThreadPool(THREAD_COUNT);
 
-    private OnBitmapLoaded bitmapLoaded;
+    private OnCameraCallbackBitmapLoaded onCameraCallbackBitmapLoaded;
 
     boolean isReceived;//刚进来默认是正在接收数据的
 
@@ -49,7 +50,7 @@ public class TCPVideoReceiveIListener extends TCPIListener {
             public void run() {
                 try {
                     Bitmap bitmap = BitmapFactory.decodeStream(socket.getInputStream());
-                    bitmapLoaded.onBitmapLoaded(bitmap);
+                    onCameraCallbackBitmapLoaded.onCameraCallbackBitmapLoaded(bitmap);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -57,12 +58,12 @@ public class TCPVideoReceiveIListener extends TCPIListener {
         });
     }
 
-    public OnBitmapLoaded getBitmapLoaded() {
-        return bitmapLoaded;
+    public OnCameraCallbackBitmapLoaded getOnCameraCallbackBitmapLoaded() {
+        return onCameraCallbackBitmapLoaded;
     }
 
-    public void setBitmapLoaded(OnBitmapLoaded bitmapLoaded) {
-        this.bitmapLoaded = bitmapLoaded;
+    public void setOnCameraCallbackBitmapLoaded(OnCameraCallbackBitmapLoaded onCameraCallbackBitmapLoaded) {
+        this.onCameraCallbackBitmapLoaded = onCameraCallbackBitmapLoaded;
     }
 
     @Override
@@ -75,8 +76,8 @@ public class TCPVideoReceiveIListener extends TCPIListener {
     }
 
     @Override
-    public void close() throws IOException {
-        super.close();
+    public void closeListener() throws IOException {
+        super.closeListener();
         isReceived = false;
         executors.shutdownNow();
         instance = null;

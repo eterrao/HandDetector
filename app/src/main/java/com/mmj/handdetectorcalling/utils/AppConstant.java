@@ -7,7 +7,7 @@ public class AppConstant {
     public static final String PhoneNumberSP = "phoneNumber";
     public static final String PHONE_KEY = "phone_number";
     public static final String ACTION_ADD_USER = "com.mmj.adduser";
-    public static final String ENCODE_FORMAT = "GBK";
+    public static final String ENCODE_FORMAT = "GBK"; // 设置编码格式为GBK
 
     // 消息端口
     public static final int MESSAGE_PORT = 42836;

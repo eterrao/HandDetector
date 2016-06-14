@@ -27,7 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ChatService extends Service implements OnUDPReceiveMessage {
     private final int SEND_FAILURE = 0XF0001;
 
-    private final MyBinder myBinder = new MyBinder();
+    private final CustomBinder customBinder = new CustomBinder();
     //保存当前在线用户，键值为用户的ip
     final Map<String, UserBean> users = new ConcurrentHashMap<String, UserBean>();
     //保存用户发的消息，每个ip都会开启一个消息队列来缓存消息
@@ -52,7 +52,7 @@ public class ChatService extends Service implements OnUDPReceiveMessage {
         super.onCreate();
         try {
             listener.setOnReceiveMessage(this);
-            listener.open();
+            listener.openListener();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -69,7 +69,7 @@ public class ChatService extends Service implements OnUDPReceiveMessage {
 
     @Override
     public IBinder onBind(Intent intent) {
-        return myBinder;
+        return customBinder;
     }
 
     @Override
@@ -87,7 +87,7 @@ public class ChatService extends Service implements OnUDPReceiveMessage {
      * 自定义的Binder类，
      * 通过这个类，让Activity获得与其绑定的Service对象
      */
-    public final class MyBinder extends Binder {
+    public final class CustomBinder extends Binder {
         /**
          * 获得当前用户列表
          */
@@ -122,7 +122,7 @@ public class ChatService extends Service implements OnUDPReceiveMessage {
     public void onDestroy() {
         super.onDestroy();
         try {
-            listener.close();
+            listener.closeListener();
             System.exit(0);
         } catch (IOException e) {
             e.printStackTrace();
@@ -137,9 +137,9 @@ public class ChatService extends Service implements OnUDPReceiveMessage {
             case IListener.REMOVE_USER:
                 sendBroadcast(new Intent(AppConstant.ACTION_ADD_USER));
                 break;
-            case IListener.ASK_VIDEO:
-            case IListener.REPLAY_VIDEO_ALLOW:
-            case IListener.REPLAY_VIDEO_NOT_ALLOW:
+            case IListener.VIDEO_CHAT_REQUEST:
+            case IListener.VIDEO_CHAT_ALLOW:
+            case IListener.VIDEO_CHAT_NOT_ALLOW:
             case IListener.RECEIVE_MSG:
                 sendBroadcast(new Intent(VideoChatActivity.MessageUpdateReceiver.ACTION_NOTIFY_DATA));
                 break;

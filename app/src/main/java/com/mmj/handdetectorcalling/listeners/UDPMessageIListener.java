@@ -35,12 +35,12 @@ public class UDPMessageIListener extends UDPIListener {
 
     private static UDPMessageIListener instance;
 
-
     private UDPMessageIListener(Map<String, UserBean> users, Map<String, Queue<UDPMessageBean>> messages) {
         this.users = users;
         this.messages = messages;
     }
 
+    // 单例模式，获取UDPMessageIListener的实例
     public static UDPMessageIListener getInstance(Map<String, UserBean> users, Map<String, Queue<UDPMessageBean>> messages) {
         return instance == null ? instance = new UDPMessageIListener(users, messages) : instance;
     }
@@ -80,9 +80,9 @@ public class UDPMessageIListener extends UDPIListener {
                     users.remove(sourceIp);
                     break;
 
-                case ASK_VIDEO:
-                case REPLAY_VIDEO_ALLOW:
-                case REPLAY_VIDEO_NOT_ALLOW:
+                case VIDEO_CHAT_REQUEST:
+                case VIDEO_CHAT_ALLOW:
+                case VIDEO_CHAT_NOT_ALLOW:
                 case RECEIVE_MSG://接收到消息
                     if (messages.containsKey(sourceIp)) {
                         messages.get(sourceIp).add(msg);//更新现有
@@ -168,8 +168,8 @@ public class UDPMessageIListener extends UDPIListener {
     }
 
     @Override
-    public void close() throws IOException {
-        super.close();
+    public void closeListener() throws IOException {
+        super.closeListener();
         //这个一定要置空，不然会出现already start的bug,因为instance是static的，程序退出后，当前dvm还在，还是会保持对原有变量的引用
         instance = null;
         if (users != null) users.clear();

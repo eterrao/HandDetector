@@ -25,14 +25,12 @@ public class CustomApplication extends Application {
     private static Context mContext = null; // 构造一个全局的Application级别的全局Context
     public static CustomApplication customApplication = null;
     private String localIp;
-    private String deviceCode;
 
     @Override
     public void onCreate() {
         super.onCreate();
         initContext();
         localIp = getLocalIpAddress();
-        getDeviceId();
     }
 
     private void initContext() {
@@ -52,7 +50,7 @@ public class CustomApplication extends Application {
 
 
     /**
-     * 得到本机IP地址
+     * 获取本设备的IP
      */
     public String getLocalIpAddress() {
         try {
@@ -75,24 +73,6 @@ public class CustomApplication extends Application {
         return null;
     }
 
-    /**
-     * 获取设备唯一标识
-     */
-    private void getDeviceId() {
-        TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-//		 String imsi=telephonyManager.getSubscriberId();
-        deviceCode = telephonyManager.getDeviceId();
-        SystUtils.o("DeviceId  :" + deviceCode);
-        if (deviceCode == null) {
-            WifiManager wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
-            WifiInfo info = wifi.getConnectionInfo();
-            deviceCode = info.getMacAddress();
-        }
-        if (deviceCode == null) {
-            deviceCode = getSharedPreferences("me", 0).getString("deviceCode", System.currentTimeMillis() + "");
-            getSharedPreferences("me", 0).edit().putString("deviceCode", deviceCode).commit();
-        }
-    }
 
     public UDPMessageBean getMyUdpMessage(String msg, int type) {
         UDPMessageBean message = new UDPMessageBean();

@@ -7,14 +7,17 @@ import android.media.ThumbnailUtils;
 import android.util.AttributeSet;
 import android.view.View;
 
+import com.mmj.handdetectorcalling.application.CustomApplication;
+import com.mmj.handdetectorcalling.utils.ScreenUtils;
+
 /**
  * 自定义VideoView
  * 实现对方视频通话回显
  */
 public class CustomVideoView extends View {
 
-    private static final int DISPLAY_WIDTH = 320; // 回显的宽、高
-    private static final int DISPLAY_HEIGHT = 568;
+    public static int DISPLAY_WIDTH = ScreenUtils.getScreenWidth(CustomApplication.getContext()) / 4; // 回显的宽、高
+    public static int DISPLAY_HEIGHT = ScreenUtils.getScreenHeight(CustomApplication.getContext()) / 4;
 
     private Bitmap displayCallBackBitmap; // 以Bitmap传入当前View，并通过View的onDraw方法绘制对方视频的每一帧
 
@@ -45,5 +48,21 @@ public class CustomVideoView extends View {
     public void setDisplayCallBackBitmap(Bitmap displayCallBackBitmap) {
         this.displayCallBackBitmap = displayCallBackBitmap;
         invalidate();
+    }
+
+    public static int getDisplayWidth() {
+        return DISPLAY_WIDTH;
+    }
+
+    public static void setDisplayWidth(int displayWidth) {
+        DISPLAY_WIDTH = displayWidth;
+    }
+
+    public static int getDisplayHeight() {
+        return DISPLAY_HEIGHT;
+    }
+
+    public static void setDisplayHeight(int displayHeight) {
+        DISPLAY_HEIGHT = displayHeight;
     }
 }

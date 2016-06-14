@@ -136,7 +136,7 @@ public abstract class UDPIListener extends IListener {
      * @throws IOException
      */
     @Override
-    public void open() throws IOException {
+    public void openListener() throws IOException {
         createSocket();
         setPriority(MAX_PRIORITY);
         start();
@@ -150,7 +150,7 @@ public abstract class UDPIListener extends IListener {
      * @throws IOException
      */
     @Override
-    public void close() throws IOException {
+    public void closeListener() throws IOException {
         isOnline = false;
         interrupt();//如果在阻塞状态则打断;
         noticeOffline();
